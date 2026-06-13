@@ -22,10 +22,13 @@ let settings = loadSettings();
 let stats = loadStats();
 let activeTimer = null;
 let currentNumber = "";
+const FLASH_DURATION_MS = 700;
+let flashOverlay = null;
 
 function initApp() {
   applyDarkMode();
   bindHeaderActions();
+  createFlashOverlay();
   renderHome();
 }
 
@@ -346,6 +349,7 @@ function revealAnswerInput() {
       </div>
       <div class="button-row">
         <button id="submitAnswerBtn" class="primary-button" type="button">Check answer</button>
+        <button id="skipBtn" class="tertiary-button" type="button" aria-label="Skip round">Skip</button>
         <button id="homeFromTrainingBtn" class="secondary-button" type="button">Back to home</button>
       </div>
     </section>
@@ -357,6 +361,11 @@ function revealAnswerInput() {
   document.getElementById("submitAnswerBtn").addEventListener("click", () => {
     validateAnswer(answerInput.value);
   });
+
+  const skipEl = document.getElementById("skipBtn");
+  if (skipEl) {
+    skipEl.addEventListener("click", skipCurrent);
+  }
 
   document.getElementById("homeFromTrainingBtn").addEventListener("click", renderHome);
 
@@ -371,7 +380,9 @@ function validateAnswer(value) {
   const userAnswer = value.trim();
   const correct = userAnswer === currentNumber;
   updateStatistics(correct);
-  renderResult(correct);
+  // Show a brief full-screen flash before showing the result card
+  showFlash(correct);
+  setTimeout(() => renderResult(correct), FLASH_DURATION_MS);
 }
 
 function renderResult(correct) {
@@ -388,14 +399,48 @@ function renderResult(correct) {
       </div>
     </section>
   `;
-
-  announce(correct ? "Correct answer" : `Incorrect. Actual number ${currentNumber}`);
   document.getElementById("nextRoundBtn").addEventListener("click", renderTraining);
   document.getElementById("homeFromResultBtn").addEventListener("click", renderHome);
 
   // focus next round for quick flow
   const next = document.getElementById("nextRoundBtn");
   if (next) next.focus();
+}
+
+function createFlashOverlay() {
+  if (flashOverlay) return;
+  const existing = document.getElementById("flashOverlay");
+  if (existing) {
+    flashOverlay = existing;
+    return;
+  }
+  const div = document.createElement("div");
+  div.id = "flashOverlay";
+  div.className = "flash-overlay";
+  div.setAttribute("aria-hidden", "true");
+  document.body.appendChild(div);
+  flashOverlay = div;
+}
+
+function showFlash(correct, duration = FLASH_DURATION_MS) {
+  if (!flashOverlay) createFlashOverlay();
+  flashOverlay.classList.remove("flash-correct", "flash-incorrect");
+  flashOverlay.classList.add(correct ? "flash-correct" : "flash-incorrect", "flash-show");
+  // ensure it's visible for the duration, then hide
+  setTimeout(() => {
+    if (flashOverlay) flashOverlay.classList.remove("flash-show");
+  }, duration);
+  // Announce immediately for assistive tech
+  announce(correct ? "Correct" : "Incorrect");
+}
+
+function skipCurrent() {
+  clearActiveTimer();
+  announce("Skipped — next number");
+  // do not update statistics for a skip
+  currentNumber = generateRandomNumber(getActiveLength());
+  // small delay to allow the announcer to update
+  setTimeout(() => renderTraining(), 120);
 }
 
 function updateStatistics(correct) {

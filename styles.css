@@ -174,6 +174,7 @@ h1 {
   width: 100%;
   font-size: 1rem;
   transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+  min-height: 52px;
 }
 
 .primary-button {
@@ -335,8 +336,26 @@ input[type="radio"]:focus {
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   text-align: center;
+}
+
+/* Respect user preference for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .flash-overlay { transition: none; }
+  .primary-button, .secondary-button, .tertiary-button { transition: none; }
+}
+
+/* Small-screen header stacking */
+@media (max-width: 520px) {
+  .app-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .toggle-button {
+    padding: 12px 14px;
+    border-radius: 12px;
+  }
 }
 
 .result-badge {
@@ -352,6 +371,29 @@ input[type="radio"]:focus {
 
 .result-incorrect {
   background: #dc2626;
+}
+
+/* Full-screen flash overlay for immediate feedback */
+.flash-overlay {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms ease;
+  z-index: 9999;
+}
+
+.flash-overlay.flash-show {
+  opacity: 1;
+}
+
+.flash-overlay.flash-correct {
+  background: rgba(16,185,129,0.95); /* green */
+}
+
+.flash-overlay.flash-incorrect {
+  background: rgba(239,68,68,0.95); /* red */
 }
 
 .button-row {
